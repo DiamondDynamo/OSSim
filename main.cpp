@@ -1,8 +1,11 @@
 #include <iostream>
+#include <fstream>
 #include <list>
 #include <ctime>
 #include <chrono>
 #include <unistd.h>
+#include <stdlib.h>
+#include <fstream>
 
 using namespace std;
 using namespace std::chrono;
@@ -19,9 +22,19 @@ enum FromList {
 
 class ProcNode {
 public:
-    ProcNode();
+    explicit ProcNode(int runs);
 
-    int procId;
+    int getReqRuns();
+
+    int getProcId();
+
+    bool equals(int);
+
+    string getStartTime();
+
+    string getEndTime();
+
+
     int fromId;
     double readyTime;
     double runningTime;
@@ -29,9 +42,14 @@ public:
     time_t startTime;
     time_t endTime;
     time_t tempTime;
+    int doneRuns;
+
+private:
+    int procId;
+    int reqRuns;
 };
 
-ProcNode::ProcNode() {
+ProcNode::ProcNode(int runs) {
     procId = NEXTID;
     NEXTID++;
     fromId = START;
@@ -41,7 +59,20 @@ ProcNode::ProcNode() {
     startTime = 0;
     endTime = 0;
     tempTime = 0;
+    doneRuns = 0;
+    reqRuns = runs;
+
 }
+
+int ProcNode::getReqRuns() { return reqRuns; }
+
+int ProcNode::getProcId() { return procId; }
+
+bool ProcNode::equals(int checkId) { return procId == checkId; }
+
+string ProcNode::getStartTime() { return ctime(&startTime); }
+
+string ProcNode::getEndTime() { return ctime(&endTime); }
 
 void moveNode(ProcNode &active, list<ProcNode> &from, list<ProcNode> &to, int toId);
 
@@ -62,42 +93,60 @@ int main() {
     list<ProcNode> running;
     list<ProcNode> term;
 
-    //TODO: Replace test code with clock cycle sim (while loop)
+    int numProcs = 5;
+    int runs[numProcs];
+    int count = 0;
 
-    ProcNode node;
-    start.push_back(node);
+//    for(int i = 0; i < numProcs; i++)
+//    {
+//        ProcNode node;
+//        start.push_back(node);
+//    }
 
-    sleep(1);
+    ifstream inputFile;
+    inputFile.open("input.txt");
 
-    moveNode(start.front(), start, ready, READY);
+    while (inputFile >> runs[count]) {
+        ProcNode *node = new ProcNode(runs[count]);
+        start.push_back(*node);
+    }
 
-    sleep(3);
+    while (term.size() != numProcs) {
+        if (!wait.empty()) {
+            ProcNode front = wait.front();
+            moveNode(front, wait, ready, READY);
+        }
+        if (!running.empty()) {
+            ProcNode front = running.front();
+            front.doneRuns++;
+            if (front.doneRuns == front.getReqRuns()) {
+                moveNode(front, running, term, TERM);
+            } else {
+//                if(!ready.empty())
+//                {
+                moveNode(front, running, wait, WAIT);
+//                }
+            }
+        }
+        if (!ready.empty()) {
+            ProcNode front = ready.front();
+            if (running.empty()) {
+                moveNode(front, ready, running, RUN);
+            }
+        }
+        if (!start.empty()) {
+            ProcNode front = start.front();
+            moveNode(front, start, ready, READY);
+        }
 
-    moveNode(ready.front(), ready, running, RUN);
+        sleep(1);
+    }
 
-    sleep(2);
-
-    moveNode(running.front(), running, wait, WAIT);
-
-    sleep(1);
-
-    moveNode(wait.front(), wait, ready, READY);
-
-    sleep(1);
-
-    moveNode(ready.front(), ready, running, RUN);
-
-    sleep(1);
-
-    moveNode(running.front(), running, term, TERM);
-
-    ProcNode test = term.front();
-
-    cout << "Start Time: " << ctime(&test.startTime);
-    cout << "End Time: " << ctime(&test.endTime);
-    cout << "Total Time: " << test.totTime << endl;
-    cout << "Ready Time: " << test.readyTime << endl;
-    cout << "Running Time: " << test.runningTime << endl;
+    for (auto it = term.begin(); it != term.end(); ++it) {
+        ProcNode active = *it;
+        cout << "Process " << active.getProcId() << ":\t\tStarted " << active.getStartTime() << "\t\t\t\tEnded "
+             << active.getEndTime() << endl;
+    }
 
     return 0;
 }
