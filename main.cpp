@@ -1,3 +1,10 @@
+/*
+ * Operating System State Simulator
+ *
+ * Charley Bein, Joe Maskell, Ben Tipton
+ *
+ */
+
 #include <iostream>
 #include <fstream>
 #include <list>
@@ -148,7 +155,7 @@ int main() {
     //Iterate through the terminated list, to get timing info for output
     for (auto active : term) {
         cout << "Process " << active.getProcId() << ":\t\tStarted " << active.getStartTime() << "\t\t\t\tEnded "
-             << active.getEndTime() << endl;
+                << active.getEndTime() << endl;
     }
 
     return 0;
